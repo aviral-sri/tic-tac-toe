@@ -1,11 +1,10 @@
 const board = document.getElementById("board");
 const cells = document.querySelectorAll(".cell");
 const result = document.getElementById("result");
-const restartButton = document.getElementById("restart");
+const resetButton = document.getElementById("reset");
 const darkModeToggle = document.getElementById("dark-mode-toggle");
 const undoButton = document.getElementById("undo");
 const aiToggleButton = document.getElementById("ai-toggle");
-const timerDisplay = document.getElementById("timer");
 const resetScoreText = document.getElementById("reset-score");
 
 let currentPlayer = "X";
@@ -13,7 +12,6 @@ let gameState = ["", "", "", "", "", "", "", "", ""];
 let isGameActive = true;
 let history = [];
 let isAIPlaying = false;
-let timer;
 let scores = { X: 0, O: 0 };
 
 const winningConditions = [
@@ -54,7 +52,6 @@ function checkResult() {
     if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
       roundWon = true;
       highlightWinningCells(a, b, c);
-      // Update the score based on the current player
       if (gameState[a] === "X") {
         scores.X++;
       } else if (gameState[a] === "O") {
@@ -68,13 +65,11 @@ function checkResult() {
     announceWinner(currentPlayer);
     updateScoreboard();
     isGameActive = false;
-    clearInterval(timer);
     return;
   }
 
   if (!gameState.includes("")) {
     announceWinner("Draw");
-    clearInterval(timer);
     return;
   }
 
@@ -91,7 +86,7 @@ function highlightWinningCells(a, b, c) {
   cells[c].classList.add("win");
 }
 
-function restartGame() {
+function resetGame() {
   gameState = ["", "", "", "", "", "", "", "", ""];
   isGameActive = true;
   currentPlayer = "X";
@@ -101,8 +96,6 @@ function restartGame() {
     cell.textContent = "";
     cell.classList.remove("win");
   });
-  clearInterval(timer);
-  startTimer();
 }
 
 function updateScoreboard() {
@@ -140,47 +133,43 @@ undoButton.addEventListener("click", undoLastMove);
 
 // AI move
 function aiMove() {
-  // AI logic to block or win
   for (let i = 0; i < winningConditions.length; i++) {
     const [a, b, c] = winningConditions[i];
-    // Check if AI can win
     if (gameState[a] === "O" && gameState[b] === "O" && gameState[c] === "") {
-      gameState[c] = "O"; // Win
+      gameState[c] = "O";
       cells[c].textContent = "O";
       checkResult();
       return;
     } else if (gameState[b] === "O" && gameState[c] === "O" && gameState[a] === "") {
-      gameState[a] = "O"; // Win
+      gameState[a] = "O";
       cells[a].textContent = "O";
       checkResult();
       return;
     } else if (gameState[a] === "O" && gameState[c] === "O" && gameState[b] === "") {
-      gameState[b] = "O"; // Win
+      gameState[b] = "O";
       cells[b].textContent = "O";
       checkResult();
       return;
     }
 
-    // Check if player (X) is about to win and block
     if (gameState[a] === "X" && gameState[b] === "X" && gameState[c] === "") {
-      gameState[c] = "O"; // Block
+      gameState[c] = "O";
       cells[c].textContent = "O";
       checkResult();
       return;
     } else if (gameState[b] === "X" && gameState[c] === "X" && gameState[a] === "") {
-      gameState[a] = "O"; // Block
+      gameState[a] = "O";
       cells[a].textContent = "O";
       checkResult();
       return;
     } else if (gameState[a] === "X" && gameState[c] === "X" && gameState[b] === "") {
-      gameState[b] = "O"; // Block
+      gameState[b] = "O";
       cells[b].textContent = "O";
       checkResult();
       return;
     }
   }
 
-  // If no winning or blocking move, pick a random empty cell
   let emptyCells = gameState.map((val, idx) => (val === "" ? idx : null)).filter((idx) => idx !== null);
   let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
   gameState[randomCell] = "O";
@@ -191,44 +180,21 @@ function aiMove() {
 aiToggleButton.addEventListener("click", () => {
   isAIPlaying = !isAIPlaying;
   aiToggleButton.textContent = isAIPlaying ? "Stop Playing AI" : "Play Against AI";
-  if (!isAIPlaying) {
-    restartGame(); // Restart game when toggling off AI
+  if (!isAIPlaying || isAIPlaying) {
+    resetGame();
   }
 });
 
-// Timer for each move
-function startTimer() {
-  let timeLeft = 10;
-  timerDisplay.textContent = `Time Left: ${timeLeft}s`;
-
-  timer = setInterval(() => {
-    timeLeft--;
-    timerDisplay.textContent = `Time Left: ${timeLeft}s`;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      if (currentPlayer === "X") {
-        currentPlayer = "O"; // AI's turn
-        aiMove(); // Trigger AI move
-      } else {
-        currentPlayer = "X"; // Reset back to X after AI's turn
-        switchPlayer(); // Allow player to play again
-      }
-    }
-  }, 1000);
-}
-
 function switchPlayer() {
-  currentPlayer = currentPlayer === "X" ? "O" : "X"; // Switch between players
+  currentPlayer = currentPlayer === "O" ? "X" : "O";
 }
 
 // Reset scores
 resetScoreText.addEventListener("click", () => {
-  scores = { X: 0, O: 0 }; // Reset scores
-  updateScoreboard(); // Update scoreboard display
+  scores = { X: 0, O: 0 };
+  updateScoreboard();
 });
 
 // Event Listeners
 cells.forEach((cell) => cell.addEventListener("click", handleCellClick));
-restartButton.addEventListener("click", restartGame);
-
-startTimer(); // Start timer when the page loads
+resetButton.addEventListener("click", resetGame);
