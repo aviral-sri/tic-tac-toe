@@ -25,18 +25,15 @@ const winningConditions = [
   [2, 4, 6]
 ];
 
-// Load scores from local storage
 window.onload = loadScores;
 
 function handleCellClick(e) {
   const index = e.target.getAttribute("data-index");
-
   if (gameState[index] !== "" || !isGameActive) return;
 
   gameState[index] = currentPlayer;
   e.target.textContent = currentPlayer;
   history.push({ index: index, player: currentPlayer });
-
   checkResult();
 
   if (isAIPlaying && isGameActive) {
@@ -73,7 +70,7 @@ function checkResult() {
     return;
   }
 
-  switchPlayer(); // Move to the next player
+  switchPlayer();
 }
 
 function announceWinner(winner) {
@@ -112,12 +109,10 @@ function loadScores() {
   }
 }
 
-// Dark mode toggle
 darkModeToggle.addEventListener("click", () => {
   document.body.classList.toggle("dark-mode");
 });
 
-// Undo last move
 function undoLastMove() {
   if (history.length > 0) {
     const lastMove = history.pop();
@@ -131,7 +126,6 @@ function undoLastMove() {
 
 undoButton.addEventListener("click", undoLastMove);
 
-// AI move
 function aiMove() {
   for (let i = 0; i < winningConditions.length; i++) {
     const [a, b, c] = winningConditions[i];
@@ -189,12 +183,63 @@ function switchPlayer() {
   currentPlayer = currentPlayer === "O" ? "X" : "O";
 }
 
-// Reset scores
 resetScoreText.addEventListener("click", () => {
   scores = { X: 0, O: 0 };
   updateScoreboard();
 });
 
-// Event Listeners
 cells.forEach((cell) => cell.addEventListener("click", handleCellClick));
 resetButton.addEventListener("click", resetGame);
+
+function trainAI(iterations = 1000000) {
+  for (let i = 0; i < iterations; i++) {
+    resetGame();
+    let prevState, prevAction;
+
+    while (isGameActive) {
+      const state = gameState.join("");
+      const action = chooseAction(state);
+      prevState = state;
+      prevAction = action;
+      gameState[action] = currentPlayer;
+      const reward = checkTrainingResult();
+      const nextState = gameState.join("");
+      updateQValue(prevState, prevAction, reward, nextState);
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+    }
+  }
+  localStorage.setItem("ticTacToeQValues", JSON.stringify(Q));
+}
+
+function checkTrainingResult() {
+  let roundWon = false;
+
+  for (let i = 0; i < winningConditions.length; i++) {
+    const [a, b, c] = winningConditions[i];
+    if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+      roundWon = true;
+      isGameActive = false;
+      return currentPlayer === "O" ? 1 : -1;
+    }
+  }
+
+  if (!gameState.includes("")) {
+    isGameActive = false;
+    return 0.5;
+  }
+
+  return 0;
+}
+
+function loadQValues() {
+  const storedQValues = JSON.parse(localStorage.getItem("ticTacToeQValues"));
+  if (storedQValues) {
+    Q = storedQValues;
+  }
+}
+
+window.onload = () => {
+  loadScores();
+  loadQValues();
+  trainAI();
+};
